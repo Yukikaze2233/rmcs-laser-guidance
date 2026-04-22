@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "config.hpp"
 #include "types.hpp"
 
 namespace rmcs_laser_guidance {
@@ -9,14 +10,18 @@ namespace rmcs_laser_guidance {
 struct ModelInferResult {
     bool enabled = false;
     bool success = false;
-    std::string message{};
+    TargetObservation observation { };
+    std::string message { };
 };
 
 class ModelInfer {
 public:
-    ModelInfer() = default;
+    explicit ModelInfer(InferenceConfig config = { });
 
     auto infer(const Frame& frame) const -> ModelInferResult;
+
+private:
+    InferenceConfig config_;
 };
 
 } // namespace rmcs_laser_guidance

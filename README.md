@@ -4,7 +4,8 @@
 
 - `V4L2/UVC` 采集卡取图
 - YAML 配置加载
-- 最小亮点检测 `Detector` / `Pipeline`
+- `Pipeline` 统一视觉入口与可切换后端骨架
+- 最小亮点检测 `Detector`
 - 调试 overlay 与回放样本
 - 自动测试与人工运行示例
 
@@ -111,6 +112,8 @@ ros2 run rmcs_laser_guidance example_model_infer
 - 默认 live 输入为 UVC 采集卡 `v4l2.device_path=/dev/video0`
 - 默认 live 模式为 `1920x1080 @ 60 FPS`，优先 `mjpeg`
 - 当前检测逻辑仍然是极简亮点检测实现，用于把工程链路跑通
+- `Pipeline` 通过 `inference.backend` 在 `bright_spot` 和 `model` 占位后端间切换
+- `inference.model_path` 当前只用于预留模型接入配置，不会真正加载 ONNX
 - `model_infer_*` 当前只是占位接口，不接真实推理后端
 - 后续如果要接 RMCS，再单独增加 bridge 和控制接口
 

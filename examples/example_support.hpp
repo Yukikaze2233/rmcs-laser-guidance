@@ -38,4 +38,16 @@ inline auto pixel_format_name(const rmcs_laser_guidance::V4l2PixelFormat pixel_f
     }
 }
 
+inline auto inference_backend_name(const rmcs_laser_guidance::InferenceBackendKind backend) noexcept
+    -> const char* {
+    switch (backend) {
+    case rmcs_laser_guidance::InferenceBackendKind::bright_spot:
+        return "bright_spot";
+    case rmcs_laser_guidance::InferenceBackendKind::model:
+        return "model";
+    default:
+        return "unknown";
+    }
+}
+
 } // namespace rmcs_laser_guidance::examples

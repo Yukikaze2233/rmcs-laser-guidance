@@ -11,7 +11,7 @@
 
 - `V4L2/UVC` 取图
 - `Config` / `Frame` / `TargetObservation` / `Pipeline`
-- 内部 `Detector` / `DebugRenderer` / `Replay` / `V4l2Capture`
+- 内部 `Detector` / `ModelInfer` / `DebugRenderer` / `Replay` / `V4l2Capture`
 - 自动测试与人工运行入口
 
 当前明确**不是**闭环控制系统，不包含：
@@ -68,7 +68,7 @@ internal：
 设计边界：
 
 - `Pipeline` 是唯一对外视觉入口。
-- `Pipeline` 通过 `Details` 收束内部依赖。
+- `Pipeline` 通过 `Details` 收束内部依赖，并在构造时选择视觉后端。
 - `Frame` / `TargetObservation` 仍然公开 `OpenCV` 类型。
 - examples 与白盒 tests 可以使用 `src/internal/`，但这些头不算 public API。
 
@@ -83,7 +83,8 @@ config/default.yaml
 V4l2Capture / synthetic frame / replay frame
 -> Frame {image, timestamp}
 -> Pipeline
--> Detector
+-> selected backend
+-> Detector / ModelInfer
 -> TargetObservation {detected, center, contour, brightness}
 -> DebugRenderer / stdout / replay output
 ```

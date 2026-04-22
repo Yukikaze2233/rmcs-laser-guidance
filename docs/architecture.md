@@ -22,7 +22,9 @@
 V4l2Capture
 -> read_frame()
 -> Frame
--> Detector / Pipeline::process()
+-> Pipeline::process()
+-> selected backend
+-> Detector / ModelInfer
 -> TargetObservation
 -> draw_debug_overlay() / stdout
 ```
@@ -32,8 +34,9 @@ V4l2Capture
 - `Frame` 是图像和时间戳的统一载体
 - `TargetObservation` 是最小视觉结果
 - `Detector` 负责最小亮点检测
+- `ModelInfer` 负责未来模型推理接缝，当前仍是占位实现
 - `DebugRenderer` 负责最小调试绘制
-- `Pipeline` 组合 `Detector` 与 `DebugRenderer`
+- `Pipeline` 组合“已选视觉后端”与 `DebugRenderer`
 - `V4l2Capture` 负责从 `/dev/videoN` 读取 UVC 图像
 
 ## 模块职责
@@ -41,6 +44,13 @@ V4l2Capture
 ### Config
 
 负责把 `default.yaml` 解析成强类型结构，避免入口程序散落 YAML 解析逻辑。
+
+当前还承载视觉后端选择配置：
+
+- `inference.backend`
+  - 当前支持 `bright_spot` 与 `model`
+- `inference.model_path`
+  - 为后续 ONNX 接入预留模型路径，当前不会真正加载
 
 ### Frame
 
@@ -58,7 +68,8 @@ V4l2Capture
 
 - 接受 `Frame`
 - 返回 `TargetObservation`
-- 转调 `Detector`
+- 在构造时选择视觉后端
+- 转调 `Detector` 或 `ModelInfer`
 - 转调 `DebugRenderer`
 
 ### Replay
@@ -81,7 +92,7 @@ V4l2Capture
 - `example_detector_benchmark`
   - 离线 benchmark
 - `example_model_infer`
-  - 模型推理占位入口
+  - 通过 `Pipeline` 验证 `model` 占位后端接缝
 
 Examples 只负责运行流程，不负责视觉算法本身。
 

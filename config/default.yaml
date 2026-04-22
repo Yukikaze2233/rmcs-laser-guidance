@@ -9,3 +9,7 @@ v4l2:
 debug:
   show_window: true
   draw_overlay: true
+
+inference:
+  backend: bright_spot
+  model_path: ""
