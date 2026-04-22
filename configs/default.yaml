@@ -1,0 +1,11 @@
+camera:
+  timeout_ms: 2000
+  exposure_us: 1500.0
+  framerate: 80.0
+  gain: 16.0
+  invert_image: false
+
+debug:
+  show_window: true
+  draw_overlay: true
+
