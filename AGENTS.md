@@ -1,178 +1,189 @@
 # 仓库指南
 
 ## 项目定位
-`rmcs_laser_guidance` 是激光视觉引导模块的独立仓库，当前阶段只负责视觉链本身：
+`rmcs_laser_guidance` 的目标是：
 
-- 使用 `hikcamera` 取图
-- 将图像封装为统一 `Frame`
-- 运行最小 `Pipeline`
-- 输出 `TargetObservation`
-- 提供离线与真机相机验证入口
+- 为二维云台搭载激光笔
+- 视觉引导云台
+- 使激光实时命中移动无人机搭载的特征靶
 
-它当前**不是**：
+当前阶段仍然只是视觉最小骨架，已经落地的能力只有：
 
-- RMCS 运行时组件
-- `sp_vision_25` 的裁剪版
-- 带 `/gimbal/*` 输出的控制模块
-- 带姿态同步或发弹决策的自瞄系统
+- `V4L2/UVC` 取图
+- `Config` / `Frame` / `TargetObservation` / `Pipeline`
+- 内部 `Detector` / `DebugRenderer` / `Replay` / `V4l2Capture`
+- 自动测试与人工运行入口
 
-如果你只记一件事，请记住：
+当前明确**不是**闭环控制系统，不包含：
 
-- 这个仓库现在的设计目标是“先把视觉链路本身做干净”，因此核心库必须能在**不依赖 RMCS 控制链**的情况下独立运行和测试。
-
-## 仓库地图
-
-### 顶层
-
-- `README.md`
-  - 构建、运行和文档入口。
-- `plan.md`
-  - 项目的总目标，描述最终要达成的系统能力。
-- `AGENTS.md`
-  - 给后续接手 agent 的架构说明。项目结构变化时应同步更新。
-- `package.xml`
-  - ROS 2 包清单。
-- `CMakeLists.txt`
-  - 包构建图。
-- `configs/default.yaml`
-  - 最小默认配置。
-
-### 代码目录
-
-- `include/rmcs_laser_guidance/`
-  - 公共 API，只保留 `config/types/pipeline`。
-- `src/`
-  - 核心实现，当前只有配置加载和最小亮点检测。
-- `apps/`
-  - 手工运行入口。
-- `tests/`
-  - 最小自动化测试。
-- `docs/`
-  - 项目文档，包含架构、开发约束与未来接入方向。
-
-## 当前架构
-
-### 数据流
-
-当前主链非常短：
-
-```text
-hikcamera::Camera
--> Frame {image, timestamp}
--> Pipeline::process(...)
--> TargetObservation {detected, center, contour, brightness}
--> debug overlay / stdout
-```
-
-这条链只解决两个问题：
-
-1. 图像是否能稳定采集
-2. 检测 API 是否已经被工程化固定下来
-
-### 运行入口
-
-当前有两个入口程序：
-
-- `hikcamera_preview`
-  - 真机相机预览入口
-  - 用于联通 `hikcamera` 和 `Pipeline`
-- `offline_smoke`
-  - 纯软件冒烟入口
-  - 不依赖相机，只验证 pipeline 基本行为
-
-### 测试入口
-
-- `pipeline_smoke_test`
-  - 验证 `Pipeline` 对空帧、黑图不会误报
-
-### 构建图
-
-当前 CMake 目标关系是：
-
-```text
-rmcs_laser_guidance_core
-├── config.cpp
-└── pipeline.cpp
-
-hikcamera_preview -> rmcs_laser_guidance_core + hikcamera
-offline_smoke -> rmcs_laser_guidance_core
-pipeline_smoke_test -> rmcs_laser_guidance_core
-```
-
-## 公共接口
-
-当前稳定 API 只有三类：
-
-- `Config`
-  - 读取 `camera.*` 和 `debug.*` 配置
-- `Frame`
-  - 统一封装图像和时间戳
-- `TargetObservation`
-  - 表示当前视觉结果
-- `Pipeline`
-  - 处理 `Frame` 并返回 `TargetObservation`
-
-在当前阶段，这些接口比检测效果本身更重要，因为后续 tracker / solver / bridge 都会建立在这里。
-
-## 配置约定
-
-当前只允许两类配置：
-
-- `camera.*`
-  - `timeout_ms`
-  - `exposure_us`
-  - `framerate`
-  - `gain`
-  - `invert_image`
-- `debug.*`
-  - `show_window`
-  - `draw_overlay`
-
-原则：
-
-- 第一阶段不要把配置做成 `sp_vision_25` 那种大扁平表
-- 只有在真正出现新的可调行为时才增加键
-- 不要预埋大量未来字段
-
-## 当前边界
-
-明确不做：
-
-- `rmcs_executor`
-- `pluginlib`
+- `tracker`
+- `solver`
 - `/tf`
-- `HardSyncSnapshot`
 - `/gimbal/*`
 - `fire_control`
+- `pluginlib`
+- `rmcs_executor`
+
+## 目录职责
+- `package.xml`
+  - ROS 2 / ament 包声明。
+- `CMakeLists.txt`
+  - 顶层构建入口，支持 standalone CMake 与 ament 双模式。
+- `config/default.yaml`
+  - 默认运行配置。
+- `models/`
+  - 放置 `.onnx` 模型文件。
+- `include/`
+  - 扁平 public API，仅放稳定对外头文件。
+- `src/`
+  - 公开接口实现。
+- `src/internal/`
+  - 不安装的内部实现头。
+- `examples/`
+  - 人工运行入口。
+- `tests/`
+  - 自动化验证，文件名统一为 `*_test.cpp`。
+- `test_data/`
+  - 样本回放与固定测试资源。
+- `docs/`
+  - 补充文档。
+
+## 当前公开与内部接口
+public：
+
+- `include/config.hpp`
+- `include/types.hpp`
+- `include/pipeline.hpp`
+- `include/rmcs_laser_guidance.hpp`
+
+internal：
+
+- `src/internal/frame_format.hpp`
+- `src/internal/detector.hpp`
+- `src/internal/debug_renderer.hpp`
+- `src/internal/replay.hpp`
+- `src/internal/model_infer.hpp`
+- `src/internal/v4l2_capture.hpp`
+
+设计边界：
+
+- `Pipeline` 是唯一对外视觉入口。
+- `Pipeline` 通过 `Details` 收束内部依赖。
+- `Frame` / `TargetObservation` 仍然公开 `OpenCV` 类型。
+- examples 与白盒 tests 可以使用 `src/internal/`，但这些头不算 public API。
+
+## 精要框架流图
+
+### 当前核心链路
+```text
+config/default.yaml
+-> load_config()
+-> Config
+
+V4l2Capture / synthetic frame / replay frame
+-> Frame {image, timestamp}
+-> Pipeline
+-> Detector
+-> TargetObservation {detected, center, contour, brightness}
+-> DebugRenderer / stdout / replay output
+```
+
+### 当前运行入口
+```text
+example_v4l2_preview
+-> V4l2Capture.open()
+-> read_frame()
+-> Pipeline.process()
+-> overlay + preview
+
+example_v4l2_capture
+-> V4l2Capture.open()
+-> read_frame()
+-> ReplayRecorder.record_frame()
+-> manifest.csv + png frames
+
+example_replay_preview
+-> load_replay_dataset()
+-> load frame png
+-> Pipeline.process()
+-> stdout + optional preview
+
+*_test.cpp
+-> load config / synthesize frame / load sample data
+-> call one focused module
+-> assert expected behavior
+```
+
+### 当前构建关系
+```text
+rmcs_laser_guidance_core
+-> config / detector / renderer / replay / v4l2 / pipeline
+
+example_*
+-> rmcs_laser_guidance_core
+-> OpenCV
+
+*_test
+-> rmcs_laser_guidance_core
+-> OpenCV
+```
+
+### 目标演进链路
+```text
+V4l2Source / VideoSource / ReplaySource
+-> Frame
+-> Detector
+-> TargetObservation
+-> Tracker
+-> TargetState
+-> Solver / GuidanceLogic
+-> GuidanceResult
+-> LaserGuidanceBridge
+-> /gimbal/laser_guidance/*
+-> gimbal controller
+```
+
+## 未来接入约束
+推荐命名空间：
+
+```text
+/gimbal/laser_guidance/*
+```
+
+不要直接复用：
+
+```text
+/gimbal/auto_aim/*
+```
+
+未来 bridge 的职责只应包括：
+
+- 参数读取
+- 输入采集
+- 结果发布
+
+bridge 不应承载算法实现本身。
+
+## 当前边界
+当前阶段的完成标准是：
+
+- 相机稳定运行
+- pipeline 能稳定处理正常图像和异常输入
+- 自动测试与人工入口都存在
+- 核心逻辑不依赖 ROS 控制链
+
+以下内容不应在这个阶段偷偷引入：
+
+- `/tf`
+- `HardSyncSnapshot`
 - `tracker`
 - `solver`
 - `planner`
-- 多相机
-- 视频回放
+- 控制指令
+- `fire_control`
 
-原因很简单：这些都属于第二阶段“接入 RMCS 或进入闭环控制”之后的事情，不是当前最小骨架要解决的问题。
+如果未来结构发生变化，至少同步更新：
 
-## 开发约束
-
-- 核心库必须保持无 ROS node 依赖。
-- `apps/` 负责运行流程，不要把业务逻辑塞进去。
-- `src/` 里的实现必须可以被 `tests/` 直接调用。
-- 任何新的目录拆分都要有真实复杂度支撑，不要提前仿照 `sp_vision_25` 建 `io/tasks/tools` 三层。
-- 每次架构变化后，优先更新：
-  - `AGENTS.md`
-  - `docs/architecture.md`
-  - `README.md`
-
-## 后续演进方向
-
-预计第二阶段才会开始讨论：
-
-- `tracker` 是否需要引入
-- 是否接入 `/tf`
-- 是否新增 `bridge`
-- 是否输出 `/gimbal/laser_guidance/*`
-- 是否与 RMCS 的 gimbal controller 对接
-
-在那之前，这个仓库的判断标准只有一个：
-
-- 不接控制链，视觉链是否已经足够干净、稳定、可测试
+- `README.md`
+- `AGENTS.md`
+- `docs/architecture.md`

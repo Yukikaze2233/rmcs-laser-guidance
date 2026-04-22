@@ -23,4 +23,3 @@ struct TargetObservation {
 };
 
 } // namespace rmcs_laser_guidance
-

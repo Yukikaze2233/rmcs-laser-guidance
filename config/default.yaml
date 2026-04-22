@@ -1,0 +1,11 @@
+v4l2:
+  device_path: /dev/video0
+  width: 1920
+  height: 1080
+  framerate: 60.0
+  pixel_format: mjpeg
+  invert_image: false
+
+debug:
+  show_window: true
+  draw_overlay: true

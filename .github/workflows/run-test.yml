@@ -1,0 +1,42 @@
+name: Run Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: qzhhhi/rmcs-develop
+      options: --user 0
+
+    env:
+      WS_DIR: ${{ github.workspace }}/ws
+      SRC_DIR: ${{ github.workspace }}/ws/src
+
+    steps:
+      - name: Checkout repository into ROS2 workspace
+        uses: actions/checkout@v4
+        with:
+          path: ws/src/rmcs_laser_guidance
+
+      - name: Build package
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          cd "$WS_DIR"
+          colcon build \
+            --packages-select rmcs_laser_guidance \
+            --symlink-install \
+            --merge-install \
+            --event-handlers console_direct+
+
+      - name: Run tests
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          source "$WS_DIR/install/setup.bash"
+          ctest --test-dir "$WS_DIR/build/rmcs_laser_guidance" --output-on-failure

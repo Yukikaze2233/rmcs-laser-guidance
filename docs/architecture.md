@@ -19,10 +19,10 @@
 ## 当前数据流
 
 ```text
-hikcamera::Camera
--> read_image_with_timestamp()
+V4l2Capture
+-> read_frame()
 -> Frame
--> Pipeline::process()
+-> Detector / Pipeline::process()
 -> TargetObservation
 -> draw_debug_overlay() / stdout
 ```
@@ -31,7 +31,10 @@ hikcamera::Camera
 
 - `Frame` 是图像和时间戳的统一载体
 - `TargetObservation` 是最小视觉结果
-- `Pipeline` 是唯一业务入口
+- `Detector` 负责最小亮点检测
+- `DebugRenderer` 负责最小调试绘制
+- `Pipeline` 组合 `Detector` 与 `DebugRenderer`
+- `V4l2Capture` 负责从 `/dev/videoN` 读取 UVC 图像
 
 ## 模块职责
 
@@ -43,7 +46,7 @@ hikcamera::Camera
 
 统一图像输入格式，后续不管是：
 
-- `hikcamera`
+- `V4L2/UVC`
 - 视频文件
 - RMCS bridge
 
@@ -51,27 +54,43 @@ hikcamera::Camera
 
 ### Pipeline
 
-当前是极简亮点检测器，职责只有：
+当前是最小视觉主入口，职责只有：
 
 - 接受 `Frame`
 - 返回 `TargetObservation`
-- 可选绘制调试 overlay
+- 转调 `Detector`
+- 转调 `DebugRenderer`
 
-### Apps
+### Replay
 
-- `hikcamera_preview`
+- `ReplayRecorder`
+  - 把 `Frame` 录成 `PNG + manifest.csv`
+- `load_replay_dataset`
+  - 从样本或录帧目录回放 `Frame`
+
+### Examples
+
+- `example_v4l2_preview`
   - 真机入口
-- `offline_smoke`
+- `example_v4l2_capture`
+  - 录帧入口
+- `example_offline_smoke`
   - 纯软件入口
+- `example_replay_preview`
+  - 回放入口
+- `example_detector_benchmark`
+  - 离线 benchmark
+- `example_model_infer`
+  - 模型推理占位入口
 
-Apps 只负责运行流程，不负责视觉算法本身。
+Examples 只负责运行流程，不负责视觉算法本身。
 
 ## 当前输出
 
 当前输出只有两类：
 
 - 结构化结果：`TargetObservation`
-- 调试结果：图像窗口 / 标准输出
+- 调试结果：图像窗口 / 标准输出 / 回放目录
 
 这意味着当前仓库的“外部协议”还没有形成。真正的 RMCS 内部总线接口要到第二阶段才会定义。
 
@@ -88,4 +107,3 @@ Apps 只负责运行流程，不负责视觉算法本身。
 - `fire_control`
 
 这些内容一旦进入，就会把视觉最小骨架变成“半个控制系统”，偏离当前目标。
-

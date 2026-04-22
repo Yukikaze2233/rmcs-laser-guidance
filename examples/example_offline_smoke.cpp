@@ -1,22 +1,20 @@
 #include <filesystem>
-#include <iostream>
+#include <cstdio>
+#include <print>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "rmcs_laser_guidance/config.hpp"
-#include "rmcs_laser_guidance/pipeline.hpp"
+#include "example_support.hpp"
+#include "config.hpp"
+#include "pipeline.hpp"
 
 namespace {
 
 auto resolve_config_path(int argc, char** argv) -> std::filesystem::path {
     if (argc > 1)
         return argv[1];
-#ifdef RMCS_LASER_GUIDANCE_DEFAULT_CONFIG_PATH
-    return RMCS_LASER_GUIDANCE_DEFAULT_CONFIG_PATH;
-#else
-    return "configs/default.yaml";
-#endif
+    return rmcs_laser_guidance::examples::default_config_path();
 }
 
 } // namespace
@@ -36,8 +34,11 @@ int main(int argc, char** argv) {
         };
         const auto observation = pipeline.process(frame);
 
-        std::cout << "detected=" << (observation.detected ? 1 : 0) << " center=("
-                  << observation.center.x << ", " << observation.center.y << ")\n";
+        std::println(
+            "detected={} center=({}, {})",
+            observation.detected ? 1 : 0,
+            observation.center.x,
+            observation.center.y);
 
         if (config.debug.show_window) {
             cv::Mat display = image.clone();
@@ -48,8 +49,7 @@ int main(int argc, char** argv) {
 
         return observation.detected ? 0 : 1;
     } catch (const std::exception& e) {
-        std::cerr << "offline_smoke failed: " << e.what() << '\n';
+        std::println(stderr, "example_offline_smoke failed: {}", e.what());
         return 1;
     }
 }
-

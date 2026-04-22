@@ -10,21 +10,34 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-O2 -Wall -Wextra -Wpedantic)
 endif()
 
-find_package(ament_cmake REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(OpenCV REQUIRED)
-find_package(hikcamera REQUIRED)
+find_package(ament_cmake QUIET)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgcodecs imgproc videoio)
 find_package(yaml-cpp REQUIRED)
 
 include(GNUInstallDirs)
 
-set(default_config_path "${CMAKE_CURRENT_SOURCE_DIR}/configs/default.yaml")
+set(RMCS_LASER_GUIDANCE_USE_AMENT ${ament_cmake_FOUND})
+
+if(RMCS_LASER_GUIDANCE_USE_AMENT)
+  message(STATUS "Configuring rmcs_laser_guidance with ament_cmake")
+else()
+  message(STATUS "Configuring rmcs_laser_guidance in standalone CMake mode")
+endif()
+
+set(default_config_path "${CMAKE_CURRENT_SOURCE_DIR}/config/default.yaml")
+set(default_sample_replay_path "${CMAKE_CURRENT_SOURCE_DIR}/test_data/sample_images")
 
 add_library(
   ${PROJECT_NAME}_core
   SHARED
   src/config.cpp
+  src/debug_renderer.cpp
+  src/detector.cpp
+  src/frame_format.cpp
+  src/model_infer.cpp
   src/pipeline.cpp
+  src/replay.cpp
+  src/v4l2_capture.cpp
 )
 
 target_include_directories(
@@ -32,45 +45,66 @@ target_include_directories(
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${EIGEN3_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
-)
-
-target_link_libraries(${PROJECT_NAME}_core PUBLIC yaml-cpp ${OpenCV_LIBS})
-
-add_executable(hikcamera_preview apps/hikcamera_preview.cpp)
-target_compile_definitions(
-  hikcamera_preview
-  PRIVATE RMCS_LASER_GUIDANCE_DEFAULT_CONFIG_PATH="${default_config_path}"
-)
-target_include_directories(hikcamera_preview PRIVATE ${hikcamera_INCLUDE_DIRS})
-target_link_libraries(
-  hikcamera_preview
   PRIVATE
-    ${PROJECT_NAME}_core
-    ${hikcamera_LIBRARIES}
-    ${OpenCV_LIBS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-add_executable(offline_smoke apps/offline_smoke.cpp)
-target_compile_definitions(
-  offline_smoke
-  PRIVATE RMCS_LASER_GUIDANCE_DEFAULT_CONFIG_PATH="${default_config_path}"
-)
-target_link_libraries(offline_smoke PRIVATE ${PROJECT_NAME}_core ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME}_core PUBLIC yaml-cpp::yaml-cpp ${OpenCV_LIBS})
 
-add_executable(pipeline_smoke_test tests/pipeline_smoke_test.cpp)
-target_compile_definitions(
-  pipeline_smoke_test
-  PRIVATE RMCS_LASER_GUIDANCE_DEFAULT_CONFIG_PATH="${default_config_path}"
-)
-target_link_libraries(pipeline_smoke_test PRIVATE ${PROJECT_NAME}_core ${OpenCV_LIBS})
+function(rmcs_laser_guidance_add_default_paths target_name)
+  target_compile_definitions(
+    ${target_name}
+    PRIVATE
+      RMCS_LASER_GUIDANCE_DEFAULT_CONFIG_PATH="${default_config_path}"
+      RMCS_LASER_GUIDANCE_DEFAULT_SAMPLE_REPLAY_PATH="${default_sample_replay_path}"
+  )
+endfunction()
+
+function(rmcs_laser_guidance_add_example target_name source_path)
+  add_executable(${target_name} ${source_path})
+  rmcs_laser_guidance_add_default_paths(${target_name})
+  target_include_directories(${target_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(${target_name} PRIVATE ${PROJECT_NAME}_core ${OpenCV_LIBS})
+endfunction()
+
+function(rmcs_laser_guidance_add_test target_name source_path)
+  add_executable(${target_name} ${source_path})
+  rmcs_laser_guidance_add_default_paths(${target_name})
+  target_include_directories(${target_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(${target_name} PRIVATE ${PROJECT_NAME}_core ${OpenCV_LIBS})
+  add_test(NAME ${target_name} COMMAND ${target_name})
+endfunction()
 
 enable_testing()
-add_test(NAME pipeline_smoke_test COMMAND pipeline_smoke_test)
+
+rmcs_laser_guidance_add_example(example_offline_smoke examples/example_offline_smoke.cpp)
+rmcs_laser_guidance_add_example(example_v4l2_preview examples/example_v4l2_preview.cpp)
+rmcs_laser_guidance_add_example(example_v4l2_capture examples/example_v4l2_capture.cpp)
+rmcs_laser_guidance_add_example(example_replay_preview examples/example_replay_preview.cpp)
+rmcs_laser_guidance_add_example(
+  example_detector_benchmark
+  examples/example_detector_benchmark.cpp
+)
+rmcs_laser_guidance_add_example(example_model_infer examples/example_model_infer.cpp)
+
+rmcs_laser_guidance_add_test(config_test tests/config_test.cpp)
+rmcs_laser_guidance_add_test(pipeline_test tests/pipeline_test.cpp)
+rmcs_laser_guidance_add_test(frame_format_test tests/frame_format_test.cpp)
+rmcs_laser_guidance_add_test(detector_test tests/detector_test.cpp)
+rmcs_laser_guidance_add_test(debug_renderer_test tests/debug_renderer_test.cpp)
+rmcs_laser_guidance_add_test(sample_images_test tests/sample_images_test.cpp)
+rmcs_laser_guidance_add_test(model_infer_test tests/model_infer_test.cpp)
 
 install(
-  TARGETS ${PROJECT_NAME}_core hikcamera_preview offline_smoke pipeline_smoke_test
+  TARGETS
+    ${PROJECT_NAME}_core
+    example_offline_smoke
+    example_v4l2_preview
+    example_v4l2_capture
+    example_replay_preview
+    example_detector_benchmark
+    example_model_infer
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -82,7 +116,17 @@ install(
 )
 
 install(
-  DIRECTORY configs
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY models
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY test_data
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -96,7 +140,8 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
-ament_export_include_directories(${CMAKE_INSTALL_INCLUDEDIR})
-ament_export_dependencies(Eigen3 OpenCV hikcamera yaml-cpp)
-
-ament_package()
+if(RMCS_LASER_GUIDANCE_USE_AMENT)
+  ament_export_include_directories(${CMAKE_INSTALL_INCLUDEDIR})
+  ament_export_dependencies(OpenCV yaml-cpp)
+  ament_package()
+endif()

@@ -1,0 +1,5 @@
+index,timestamp_ns,relative_image_path
+0,0,frames/frame_000000.png
+1,1000000,frames/frame_000001.png
+2,2000000,frames/frame_000002.png
+3,3000000,frames/frame_000003.png
