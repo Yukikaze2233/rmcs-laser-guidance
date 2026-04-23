@@ -32,17 +32,6 @@ auto DebugRenderer::draw(cv::Mat& image, const TargetObservation& observation) c
     }
 
     cv::circle(image, observation.center, 6, {0, 0, 255}, 2);
-    cv::putText(
-        image,
-        "laser " + std::to_string(static_cast<int>(observation.brightness)),
-        {
-            static_cast<int>(std::lround(observation.center.x)) + 10,
-            static_cast<int>(std::lround(observation.center.y)) - 10,
-        },
-        cv::FONT_HERSHEY_SIMPLEX,
-        0.6,
-        {0, 255, 0},
-        2);
 }
 
 } // namespace rmcs_laser_guidance
