@@ -53,7 +53,7 @@ config/capture_red_20m.yaml
 - `1920x1080`
 - `60 FPS`
 - `yuyv`
-- 关闭窗口显示和 overlay 保存
+- 打开窗口显示和 overlay 绘制
 
 录制命令：
 

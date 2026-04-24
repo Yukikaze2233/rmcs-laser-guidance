@@ -151,6 +151,7 @@ rmcs_laser_guidance_add_test(detector_test tests/detector_test.cpp)
 rmcs_laser_guidance_add_test(debug_renderer_test tests/debug_renderer_test.cpp)
 rmcs_laser_guidance_add_test(sample_images_test tests/sample_images_test.cpp)
 rmcs_laser_guidance_add_test(model_infer_test tests/model_infer_test.cpp)
+rmcs_laser_guidance_add_test(model_adapter_test tests/model_adapter_test.cpp)
 rmcs_laser_guidance_add_test(red_target_refiner_test tests/red_target_refiner_test.cpp)
 rmcs_laser_guidance_add_test(training_data_test tests/training_data_test.cpp)
 

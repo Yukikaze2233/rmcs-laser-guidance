@@ -72,10 +72,8 @@ int main() {
             capture_profile.v4l2.framerate, 60.0F, 1e-3F, "capture profile framerate mismatch");
         require(capture_profile.v4l2.pixel_format == rmcs_laser_guidance::V4l2PixelFormat::yuyv,
             "capture profile pixel format mismatch");
-        require(
-            !capture_profile.debug.show_window, "capture profile show_window should be disabled");
-        require(
-            !capture_profile.debug.draw_overlay, "capture profile draw_overlay should be disabled");
+        require(capture_profile.debug.show_window, "capture profile show_window mismatch");
+        require(capture_profile.debug.draw_overlay, "capture profile draw_overlay mismatch");
         const auto capture_record_options =
             rmcs_laser_guidance::examples::load_record_session_options(capture_profile_path);
         require(capture_record_options.output_root == std::filesystem::path("./videos"),

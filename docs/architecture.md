@@ -52,8 +52,8 @@ or
 - `TargetObservation` 是最小视觉结果
 - `Detector` 负责最小亮点检测
 - `ModelInfer` 负责模型推理接缝，并组合 `ModelRuntime` 与 `ModelAdapter`
-- `ModelRuntime` 负责 ONNX Runtime session 与输入输出元数据读取
-- `ModelAdapter` 负责把具体模型契约映射到仓库内部结果；当前默认 adapter 只会明确报告“未适配”
+- `ModelRuntime` 负责 ONNX Runtime session、输入输出元数据读取和实际推理执行
+- `ModelAdapter` 负责把具体模型契约映射到仓库内部结果；当前优先支持单类 YOLOv5 ONNX 常见输出
 - `RedTargetRefiner` 负责对红色 ROI 做灯条几何精修，给后续模型 ROI 后处理预留接缝
 - `DebugRenderer` 负责最小调试绘制
 - `Pipeline` 组合“已选视觉后端”与 `DebugRenderer`
@@ -96,7 +96,9 @@ or
 
 - 未启用 ONNX Runtime 时，明确报错
 - `model_path` 为空或文件不存在时，明确报错
-- 模型加载成功但输出契约未适配时，明确报错并保留输入输出元数据
+- 模型加载成功后会执行预处理、推理和契约识别
+- 当前优先支持 YOLOv5 原始输出、单张量 NMS 输出和 split-NMS 输出
+- 输出契约未适配时，明确报错并保留输入输出元数据
 
 ### Replay
 

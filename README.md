@@ -181,8 +181,8 @@ ros2 run rmcs_laser_guidance example_export_training_frames \
 - 红色目标精修当前以内部 `RedTargetRefiner` 形式存在，预留给后续模型 ROI 后处理使用
 - `Pipeline` 通过 `inference.backend` 在 `bright_spot` 和 `model` 占位后端间切换
 - `inference.model_path` 现在用于定位 `.onnx` 文件，但默认构建仍不带 ONNX Runtime
-- `model` 后端当前已具备“可选 ONNX Runtime + 模型元数据读取 + 明确报错”骨架
-- 没有模型专属 adapter 之前，`model` 后端不会静默返回空检测，而是明确报告未启用、缺模型或未适配输出契约
+- `model` 后端当前已具备“可选 ONNX Runtime + YOLOv5 ONNX 预处理/推理 + 输出契约适配”能力
+- 当前优先支持单类 YOLOv5 常见 ONNX 输出；如果契约不匹配，会明确报告输入输出元数据和失败原因
 - 本仓库当前不负责本地训练；训练应在外部平台完成，仓库只负责数据集生成和模型接入
 - 后续如果要接 RMCS，再单独增加 bridge 和控制接口
 
